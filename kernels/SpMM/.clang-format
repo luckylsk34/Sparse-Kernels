@@ -1,0 +1,30 @@
+BasedOnStyle: WebKit
+
+UseTab: AlignWithSpaces
+IndentWidth: 4
+TabWidth: 4
+AccessModifierOffset: -4
+
+BreakBeforeBraces: Linux
+IndentCaseLabels: false
+ColumnLimit: 0
+
+AlignAfterOpenBracket: Align
+AlignEscapedNewlines: Left
+AlignOperands: Align
+BreakBeforeBinaryOperators: NonAssignment
+AlignTrailingComments: true
+
+AllowShortBlocksOnASingleLine: true
+AllowShortLoopsOnASingleLine: true
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortEnumsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLambdasOnASingleLine: Inline
+
+PointerAlignment: Right
+ReflowComments: true
+SpaceAfterCStyleCast: true
+SpaceAfterLogicalNot: false
+
