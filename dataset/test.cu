@@ -6,5 +6,7 @@
 int main(){
     printf("hello world\n");
     //calling a function  form matrix.cu  for testing
-    test(45);
+    // test(45);
+    int *t;
+    matrix(t,(uint)32,(uint)32);
 }
