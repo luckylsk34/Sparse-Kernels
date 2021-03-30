@@ -16,7 +16,7 @@ __global__ void _matrix(T* d_arr,uint row,uint col){
 	uint _col = threadIdx.y + blockIdx.y * blockDim.y;
 
 	uint idx = _row * col + _col;
-
+	//__TODO__ rand doesn't work on gpu
 	int val = rand() % 255;
 	val = val * (rand() % 2);
 	d_arr[idx] = val;   
@@ -72,3 +72,4 @@ void tridiagonal(T* arr,int size);
 
 void test(int t);
 
+#include"properties.h"
