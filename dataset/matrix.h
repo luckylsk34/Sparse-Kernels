@@ -1,4 +1,5 @@
 #pragma once
+#include<stdlib.h>
 #define CHECK(call){\
 	const cudaError_t error = call;\
 	if(error != cudaSuccess){\
@@ -8,33 +9,43 @@
 	}\
 }
 
+
 template<typename T>
-__global__ _matrix(T* d_arr,uint row,uint col){
-    uint index =     
+__global__ void _matrix(T* d_arr,uint row,uint col){
+    uint _row = threadIdx.x + blockIdx.x * blockDim.x;
+	uint _col = threadIdx.y + blockIdx.y * blockDim.y;
+
+	uint idx = _row * col + _col;
+
+	int val = rand() % 255;
+	val = val * (rand() % 2);
+	d_arr[idx] = val;   
 }
 
 
 
 template<typename T>
-void matrix(T* h_arr,uint row, uint col){
+void matrix(T* h_arr,uint row, uint col,uint dim_x = 32, uint dim_y = 32){
 	// needs a (uninitialized) pointer to host and rows and columns in the required matrix
 
     size_t size = row*col*sizeof(T);
 
-	h_arr = (T*)malloc(size);  // allocaating memory to host arr	
+	// h_arr = (T*)malloc(size);  // allocaating memory to host arr	
 
 	T* d_arr;
 	CHECK(cudaMalloc((T**)&d_arr,size));   // allocating memory to device arr
 
 
-    dim3 block(32);
-    dim3 grid((col + block.x -1)/block.x,row);
+    dim3 block(dim_x,dim_y);
+    dim3 grid((col + block.x - 1)/block.x, (row + block.y -1)/block.y);
 
-    printf("%d %d",grid.x,grid.y);
+    // printf("%d %d",grid.x,grid.y);
 
-    CHECK(_matrix<<<grid,block>>>(d_arr,row,col));
+    _matrix<<<grid,block>>>(d_arr,row,col);
 
     CHECK(cudaMemcpy(h_arr,d_arr,size,cudaMemcpyDeviceToHost));
+
+	CHECK(cudaFree(d_arr));
 
 }
 
