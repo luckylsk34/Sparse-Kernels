@@ -72,4 +72,123 @@ void tridiagonal(T* arr,int size);
 
 void test(int t);
 
+
+template<typename T>
+void zeros(T* h_arr, int row,int col)
+{
+size_t size = row*col*sizeof(T);
+
+	h_arr = (T*)malloc(size);  // allocaating memory to host arr	
+
+	T* d_arr;
+	CHECK(cudaMalloc((T**)&d_arr,size));   // allocating memory to device arr
+
+
+    dim3 block(2,2);
+    dim3 grid((col/2,row/2);
+
+    printf("%d %d",grid.x,grid.y);
+
+    CHECK(_zeros<<<grid,block>>>(d_arr,row,col));
+
+    CHECK(cudaMemcpy(h_arr,d_arr,size,cudaMemcpyDeviceToHost));
+}
+template<typename T>
+__global__ void zeros(T* arr,int row,int col)
+{
+     
+
+int blockNum = blockIdx .z * ( gridDim .x * gridDim .y) + blockIdx .y * gridDim .x +
+blockIdx .x;
+int threadNum = threadIdx .z * ( blockDim .x * blockDim .y) + threadIdx .y * ( blockDim .
+x) + threadIdx .x;
+
+int globalThreadId = blockNum * ( blockDim .x * blockDim .y * blockDim .z) + threadNum
+;
+arr[globalThreadId]=0;
+}
+
+
+
+template<typename T>
+void eye(T* h_arr, int size1)
+{
+size_t size = size1*size1*sizeof(T);
+
+	h_arr = (T*)malloc(size);  // allocaating memory to host arr	
+
+	T* d_arr;
+	CHECK(cudaMalloc((T**)&d_arr,size));   // allocating memory to device arr
+
+
+    dim3 block(2,2);
+    dim3 grid((size1/2,size1/2);
+
+    printf("%d %d",grid.x,grid.y);
+
+    CHECK(_eye<<<grid,block>>>(d_arr,size));
+
+    CHECK(cudaMemcpy(h_arr,d_arr,size,cudaMemcpyDeviceToHost));
+}
+template<typename T>
+__global__ void eye(T* arr,int size)
+{
+     
+int i= blockIdx .y* blockDim .y+ threadIdx .y;
+int j= blockIdx .x* blockDim .x+ threadIdx .x;
+if(i!=j)
+arr[i*size+j]=0;
+else
+arr[i*size+j]=1;
+
+}
+
+
+
+template<typename T>
+void diagonal(T* h_arr, int size1)
+{
+size_t size = size1*size1*sizeof(T);
+
+	h_arr = (T*)malloc(size);  // allocaating memory to host arr	
+
+	T* d_arr;
+	CHECK(cudaMalloc((T**)&d_arr,size));   // allocating memory to device arr
+
+
+    dim3 block(2,2);
+    dim3 grid((size1/2,size1/2);
+
+    printf("%d %d",grid.x,grid.y);
+
+    CHECK(_diagonal<<<grid,block>>>(d_arr,size));
+
+    CHECK(cudaMemcpy(h_arr,d_arr,size,cudaMemcpyDeviceToHost));
+}
+
+template<typename T>
+__global__ void diagonal(T* arr,int size)
+{
+     
+int i= blockIdx .y* blockDim .y+ threadIdx .y;
+int j= blockIdx .x* blockDim .x+ threadIdx .x;
+if(i!=j)
+arr[i*size+j]=0;
+else
+arr[i*size+j]=i*size+j;
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include"properties.h"
