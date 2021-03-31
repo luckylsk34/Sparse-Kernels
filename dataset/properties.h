@@ -128,6 +128,25 @@ void mean(T* h_arr, uint row, uint col, uint dim_x=32, uint dim_y=32){
 }
 
 template<typename T>
+__global__ void _row_sum(T* d_arr,double *d_result,uint row,uint col){
+
+	uint _row = threadIdx.x + blockIdx.x * blockDim.x;
+	uint _col = threadIdx.y + blockIdx.y * blockDim.y;
+
+	uint idx = _row * col + _col;
+
+	//TODO __check atomicAdd works with double or not
+	atomicAdd(d_result[_row],d_arr[idx]);
+
+} 
+
+template<typename T>
+__global__ void _divider(double* d_result,uint size){
+	uint idx = threadIdx.x;
+	d[idx] = d[idx]/size; 
+}
+
+template<typename T>
 void row_mean(T* h_arr,uint row,uint col,double *h_result,uint dim_x = 32, uint dim_y = 32){
 
 	size_t size = row*col*sizeof(T);
@@ -147,8 +166,8 @@ void row_mean(T* h_arr,uint row,uint col,double *h_result,uint dim_x = 32, uint 
 	_row_sum<<<grid,block>>>(d_arr,d_result,row,col);
 
 	__syncthreads();
-
-	_divider<<<  >>>();
+	//TODO  check for no. of bytes read at a time and accordingly modify grid value
+	_divider<<<1,row>>>(d_result,row);
 
 	__syncthreads();
 
@@ -157,6 +176,21 @@ void row_mean(T* h_arr,uint row,uint col,double *h_result,uint dim_x = 32, uint 
 	CHECK(cudaFree(d_result));
 	CHECK(cudaFree(d_arr));
 }
+
+
+
+template<typename T>
+__global__ void _col_sum(T* d_arr,double *d_result,uint row,uint col){
+
+	uint _row = threadIdx.x + blockIdx.x * blockDim.x;
+	uint _col = threadIdx.y + blockIdx.y * blockDim.y;
+
+	uint idx = _row * col + _col;
+
+	//TODO __check atomicAdd works with double or not
+	atomicAdd(d_result[_col],d_arr[idx]);
+
+} 
 
 template<typename T>
 void col_mean(T* h_arr,uint row,uint col,double *h_result,uint dim_x = 32, uint dim_y = 32){
@@ -179,8 +213,9 @@ void col_mean(T* h_arr,uint row,uint col,double *h_result,uint dim_x = 32, uint 
 
 
 	__syncthreads();
-
-	_divider<<<  >>>();
+	
+	//TODO  check for no. of bytes read at a time and accordingly modify grid value
+	_divider<<<1,col>>>(d_result,col);
 
 	__syncthreads();
 
