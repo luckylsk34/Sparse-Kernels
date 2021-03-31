@@ -74,27 +74,6 @@ void test(int t);
 
 
 template<typename T>
-void zeros(T* h_arr, int row,int col)
-{
-size_t size = row*col*sizeof(T);
-
-	//h_arr = (T*)malloc(size);  // allocaating memory to host arr	
-
-	T* d_arr;
-	CHECK(cudaMalloc((T**)&d_arr,size));   // allocating memory to device arr
-
-
-    dim3 block(2,2);
-    dim3 grid((col/2,row/2);
-
-    //printf("%d %d",grid.x,grid.y);
-
-    _zeros<<<grid,block>>>(d_arr,row,col));
-
-    CHECK(cudaMemcpy(h_arr,d_arr,size,cudaMemcpyDeviceToHost));
-	CHECK(cudaFree(d_arr));
-}
-template<typename T>
 __global__ void _zeros(T* arr,int row,int col)
 {
      
@@ -110,11 +89,10 @@ arr[globalThreadId]=0;
 }
 
 
-
 template<typename T>
-void eye(T* h_arr, int size1)
+void zeros(T* h_arr, int row,int col)
 {
-size_t size = size1*size1*sizeof(T);
+size_t size = row*col*sizeof(T);
 
 	//h_arr = (T*)malloc(size);  // allocaating memory to host arr	
 
@@ -123,15 +101,16 @@ size_t size = size1*size1*sizeof(T);
 
 
     dim3 block(2,2);
-    dim3 grid((size1/2,size1/2);
+    dim3 grid(col/2,row/2);
 
     //printf("%d %d",grid.x,grid.y);
 
-    _eye<<<grid,block>>>(d_arr,size));
+    _zeros<<<grid,block>>>(d_arr,row,col);
 
     CHECK(cudaMemcpy(h_arr,d_arr,size,cudaMemcpyDeviceToHost));
 	CHECK(cudaFree(d_arr));
 }
+
 template<typename T>
 __global__ void _eye(T* arr,int size)
 {
@@ -147,8 +126,9 @@ arr[i*size+j]=1;
 
 
 
+
 template<typename T>
-void diagonal(T* h_arr, int size1)
+void eye(T* h_arr, int size1)
 {
 size_t size = size1*size1*sizeof(T);
 
@@ -159,11 +139,11 @@ size_t size = size1*size1*sizeof(T);
 
 
     dim3 block(2,2);
-    dim3 grid((size1/2,size1/2);
+    dim3 grid(size1/2,size1/2);
 
     //printf("%d %d",grid.x,grid.y);
 
-    _diagonal<<<grid,block>>>(d_arr,size));
+    _eye<<<grid,block>>>(d_arr,size);
 
     CHECK(cudaMemcpy(h_arr,d_arr,size,cudaMemcpyDeviceToHost));
 	CHECK(cudaFree(d_arr));
@@ -181,6 +161,32 @@ else
 arr[i*size+j]=i*size+j;
 
 }
+
+
+
+template<typename T>
+void diagonal(T* h_arr, int size1)
+{
+size_t size = size1*size1*sizeof(T);
+
+	//h_arr = (T*)malloc(size);  // allocaating memory to host arr	
+
+	T* d_arr;
+	CHECK(cudaMalloc((T**)&d_arr,size));   // allocating memory to device arr
+
+
+    dim3 block(2,2);
+    dim3 grid(size1/2,size1/2);
+
+    //printf("%d %d",grid.x,grid.y);
+
+    _diagonal<<<grid,block>>>(d_arr,size);
+
+    CHECK(cudaMemcpy(h_arr,d_arr,size,cudaMemcpyDeviceToHost));
+	CHECK(cudaFree(d_arr));
+}
+
+
 
 
 
