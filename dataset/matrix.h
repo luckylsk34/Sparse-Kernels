@@ -143,7 +143,7 @@ size_t size = size1*size1*sizeof(T);
 
     //printf("%d %d",grid.x,grid.y);
 
-    _eye<<<grid,block>>>(d_arr,size);
+    _eye<<<grid,block>>>(d_arr,size1);
 
     CHECK(cudaMemcpy(h_arr,d_arr,size,cudaMemcpyDeviceToHost));
 	CHECK(cudaFree(d_arr));
@@ -180,7 +180,7 @@ size_t size = size1*size1*sizeof(T);
 
     //printf("%d %d",grid.x,grid.y);
 
-    _diagonal<<<grid,block>>>(d_arr,size);
+    _diagonal<<<grid,block>>>(d_arr,size1);
 
     CHECK(cudaMemcpy(h_arr,d_arr,size,cudaMemcpyDeviceToHost));
 	CHECK(cudaFree(d_arr));
