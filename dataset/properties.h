@@ -22,7 +22,7 @@ double density(T* h_arr,uint row,uint col,uint dim_x=32,uint dim_y=32){
 	//creating space for device array
 	T* d_arr;
 	size_t size = row*col*sizeof(T);
-	CHECK(cudaMalloc((**T)&d_arr,size));
+	CHECK(cudaMalloc((T**)&d_arr,size));
 
 	//copying the values to device array
 	CHECK(cudaMemcpy(d_arr,h_arr,size,cudaMemcpyHostToDevice));
@@ -35,7 +35,7 @@ double density(T* h_arr,uint row,uint col,uint dim_x=32,uint dim_y=32){
 	*h_counter = 0;
 
 	uint* d_counter;
-	CHECK(cudaMalloc((**uint)&d_counter,uint_size));
+	CHECK(cudaMalloc((uint**)&d_counter,uint_size));
 	
 	CHECK(cudaMemcpy(d_counter,h_counter,uint_size,cudaMemcpyHostToDevice));
 
@@ -92,7 +92,7 @@ void mean(T* h_arr, uint row, uint col, uint dim_x=32, uint dim_y=32){
 	//creating space for device array
 	T* d_arr;
 	size_t size = row*col*sizeof(T);
-	CHECK(cudaMalloc((**T)&d_arr,size));
+	CHECK(cudaMalloc((T**)&d_arr,size));
 
 	//copying the values to device array
 	CHECK(cudaMemcpy(d_arr,h_arr,size,cudaMemcpyHostToDevice));
@@ -105,7 +105,7 @@ void mean(T* h_arr, uint row, uint col, uint dim_x=32, uint dim_y=32){
 	*h_sum = 0;
 
 	uint* d_sum;
-	CHECK(cudaMalloc((**double)&d_sum,double_size));
+	CHECK(cudaMalloc((double**)&d_sum,double_size));
 	
 	CHECK(cudaMemcpy(d_sum,h_sum,double_size,cudaMemcpyHostToDevice));
 
@@ -127,11 +127,90 @@ void mean(T* h_arr, uint row, uint col, uint dim_x=32, uint dim_y=32){
 	return _mean;
 }
 
-void mean_vector()
+template<typename T>
+void row_mean(T* h_arr,uint row,uint col,double *h_result,uint dim_x = 32, uint dim_y = 32){
+
+	size_t size = row*col*sizeof(T);
+	T* d_arr;
+	CHECK(cudaMalloc((T**)&d_arr,size));
+	CHECK(cudaMemcpy(d_arr,h_arr,size,cudaMemcpyHostToDevice));
+
+	size_t size_row = row*sizeof(double);
+	double* d_result;
+	CHECK(cudaMalloc((double**)d_result,size_row));
+	memset(h_result, 0, size_row);
+	CHECK(cudaMemcpy(d_result,h_result,size_row,cudaMemcpyHostToDevice));
+
+	dim3 block(dim_x,dim_y);
+	dim3 grid((col + block.x - 1)/block.x, (row + block.y -1)/block.y);
+	//TODO
+	_row_sum<<<grid,block>>>(d_arr,d_result,row,col);
+
+	__syncthreads();
+
+	_divider<<<  >>>();
+
+	__syncthreads();
+
+	CHECK(cudaMemcpy(h_result,d_result,size_row,cudaMemcpyDeviceToHost));
+
+	CHECK(cudaFree(d_result));
+	CHECK(cudaFree(d_arr));
+}
+
+template<typename T>
+void col_mean(T* h_arr,uint row,uint col,double *h_result,uint dim_x = 32, uint dim_y = 32){
+
+	size_t size = row*col*sizeof(T);
+	T* d_arr;
+	CHECK(cudaMalloc((T**)&d_arr,size));
+	CHECK(cudaMemcpy(d_arr,h_arr,size,cudaMemcpyHostToDevice));
+
+	size_t size_col = col*sizeof(double);
+	double* d_result;
+	CHECK(cudaMalloc((double**)d_result,size_col));
+	memset(h_result, 0, size_col);
+	CHECK(cudaMemcpy(d_result,h_result,size_col,cudaMemcpyHostToDevice));
+
+	dim3 block(dim_x,dim_y);
+	dim3 grid((col + block.x - 1)/block.x, (row + block.y -1)/block.y);
+	//TODO
+	_col_sum<<<grid,block>>>(d_arr,d_result,row,col);
+
+
+	__syncthreads();
+
+	_divider<<<  >>>();
+
+	__syncthreads();
+
+	CHECK(cudaMemcpy(h_result,d_result,size_col,cudaMemcpyDeviceToHost));
+
+	CHECK(cudaFree(d_result));
+	CHECK(cudaFree(d_arr));
+}
+
+
+
+
+
+enum orientation{
+	rowWise,
+	colWise 
+};
+
+template<typename T>
+void mean_vector(T* h_arr,uint row,uint col,double* h_result ,enum orientation _orientation=rowWise,uint dim_x = 32,dim_y = 32){
+
+		if(_orientation == rowWise){
+			row_mean(h_arr,row,col,h_result,dim_x,dim_y);
+		}
+		else{
+			col_mean(h_arr,row,col,h_result,dim_x,dim_y);
+		}
+}
 
 void std()
-
-void median()
 
 void issymmetric()
 
@@ -139,6 +218,7 @@ void isdiagonal()
 
 void iseye()
 
+template<typename T>
 void iszero()
 
 // AtomicMin(),AtomicXOR()
