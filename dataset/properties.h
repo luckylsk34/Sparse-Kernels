@@ -1,7 +1,178 @@
 //this file contains all the property related operations performed on the matrix
 #pragma once
 
+__device__ int count1 = 0;
+__device__ int count2 = 0;
+__device__ int count3 = 0;
 
+
+template<typename T>
+__global__ void _non_zero_counter1(T* d_arr,int row,int col){
+
+	int i= threadIdx.x + blockIdx.x * blockDim.x;
+	int j = threadIdx.y + blockIdx.y * blockDim.y;
+
+	int idx = i *col +j;
+
+	if(i==j && d_arr[idx]==1){
+		atomicAdd(&count1,1);
+	}
+  
+}
+
+template<typename T>
+__global__ void _non_zero_counter2(T* d_arr,int row,int col){
+
+	int i= threadIdx.x + blockIdx.x * blockDim.x;
+	int j = threadIdx.y + blockIdx.y * blockDim.y;
+
+	int idx = i *col +j;
+
+	if(i==j && d_arr[idx]!=0){
+		atomicAdd(&count2,1);
+	}
+  
+}
+
+template<typename T>
+__global__ void _non_zero_counter3(T* d_arr,int row,int col){
+
+	int i= threadIdx.x + blockIdx.x * blockDim.x;
+	int j = threadIdx.y + blockIdx.y * blockDim.y;
+
+	int idx = i *col +j;
+
+	if( d_arr[idx]==0){
+		atomicAdd(&count3,1);
+	}
+  
+}
+template<typename T>
+bool iseye(T* h_arr,int row,int col,int dim_x=16,int dim_y=16){
+    //creating space for device array
+	T* d_arr;
+	size_t size = row*col*sizeof(T);
+	cudaMalloc((T**)&d_arr,size);
+
+	//copying the values to device array
+cudaMemcpy(d_arr,h_arr,size,cudaMemcpyHostToDevice);
+
+	size_t int_size = sizeof(int);
+
+	//initializing counter variable
+	
+	dim3 block(dim_x,dim_y);
+	dim3 grid((col + block.x - 1)/block.x, (row + block.y -1)/block.y);
+
+
+	//calling the parallel funtion
+	_non_zero_counter1<<<grid,block>>>(d_arr,row,col);
+
+	//ensuring all the threads have completed there job
+	//__syncthreads();
+
+	//copying the value to host counter
+//cudaMemcpy(h_counter,d_counter,int_size,cudaMemcpyDeviceToHost);
+	bool result;
+  int b;
+   cudaMemcpyFromSymbol(&b, count1, sizeof(int));
+  //cout<<"The value of B=  "<<b<<endl;
+	if(b==min(row,col))
+	result=true;
+	else
+	result=false;
+
+	//calculating the density
+	return result;
+
+	
+
+}
+template<typename T>
+bool isdiagonal(T* h_arr,int row,int col,int dim_x=16,int dim_y=16){
+    //creating space for device array
+	T* d_arr;
+	size_t size = row*col*sizeof(T);
+	cudaMalloc((T**)&d_arr,size);
+
+	//copying the values to device array
+cudaMemcpy(d_arr,h_arr,size,cudaMemcpyHostToDevice);
+
+	size_t int_size = sizeof(int);
+
+	//initializing counter variable
+	
+	dim3 block(dim_x,dim_y);
+	dim3 grid((col + block.x - 1)/block.x, (row + block.y -1)/block.y);
+
+
+	//calling the parallel funtion
+	_non_zero_counter2<<<grid,block>>>(d_arr,row,col);
+
+	//ensuring all the threads have completed there job
+	//__syncthreads();
+
+	//copying the value to host counter
+//cudaMemcpy(h_counter,d_counter,int_size,cudaMemcpyDeviceToHost);
+	bool result;
+  int b;
+   cudaMemcpyFromSymbol(&b, count2, sizeof(int));
+  //cout<<"The value of B=  "<<b<<endl;
+	if(b==min(row,col))
+	result=true;
+	else
+	result=false;
+
+	//calculating the density
+	return result;
+}
+template<typename T>
+bool iszero(T* h_arr,int row,int col,int dim_x=16,int dim_y=16){
+    //creating space for device array
+	T* d_arr;
+	size_t size = row*col*sizeof(T);
+	cudaMalloc((T**)&d_arr,size);
+
+	//copying the values to device array
+cudaMemcpy(d_arr,h_arr,size,cudaMemcpyHostToDevice);
+
+	size_t int_size = sizeof(int);
+
+	//initializing counter variable
+	
+	dim3 block(dim_x,dim_y);
+	dim3 grid((col + block.x - 1)/block.x, (row + block.y -1)/block.y);
+
+
+	//calling the parallel funtion
+	_non_zero_counter3<<<grid,block>>>(d_arr,row,col);
+
+	//ensuring all the threads have completed there job
+	//__syncthreads();
+
+	//copying the value to host counter
+//cudaMemcpy(h_counter,d_counter,int_size,cudaMemcpyDeviceToHost);
+	bool result;
+  int b;
+   cudaMemcpyFromSymbol(&b, count3, sizeof(int));
+  cout<<"The value of B=  "<<b<<endl;
+	if(b==(row*col))
+	result=true;
+	else
+	result=false;
+
+	//calculating the density
+	return result;
+
+	
+
+}
+
+
+	
+
+	
+	
 template<typename T>
 __global__ void _non_zero_counter(T* d_arr,uint row,uint col,uint *counter){
 
@@ -214,11 +385,10 @@ void std()
 
 void issymmetric()
 
-void isdiagonal()
 
-void iseye()
 
-template<typename T>
-void iszero()
+
+
+
 
 // AtomicMin(),AtomicXOR()
