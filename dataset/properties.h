@@ -387,7 +387,7 @@ void mean_vector(T* h_arr,uint row,uint col,double* h_result ,enum orientation _
 
 
 template<typename T>
-__global__ void _isSymmetric(T* arr,int size, int d_counter)
+__global__ void _isSymmetric(T* arr,int size, int* d_counter)
 {
 
 	int i= threadIdx.x + blockIdx.x * blockDim.x;
@@ -395,7 +395,7 @@ __global__ void _isSymmetric(T* arr,int size, int d_counter)
 
 	if(arr[i*size + j] != arr[j*size + i])
 	{
-		atomicAdd(&d_counter,1);
+		atomicAdd(d_counter,1);
 	}
   
 }
@@ -403,6 +403,8 @@ __global__ void _isSymmetric(T* arr,int size, int d_counter)
 template<typename T>
 bool issymmetric(T* h_arr, int size1, int dim_x=16,int dim_y=16)
 { 
+	int row=size1, col=size1;
+
     T* d_arr;
     size_t size = size1*size1*sizeof(T);
 
