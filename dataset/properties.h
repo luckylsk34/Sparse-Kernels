@@ -381,9 +381,59 @@ void mean_vector(T* h_arr,uint row,uint col,double* h_result ,enum orientation _
 		}
 }
 
-void std()
 
-void issymmetric()
+
+
+
+
+template<typename T>
+__global__ void _isSymmetric(T* arr,int size, int d_counter)
+{
+
+	int i= threadIdx.x + blockIdx.x * blockDim.x;
+	int j = threadIdx.y + blockIdx.y * blockDim.y;
+
+	if(arr[i*size + j] != arr[j*size + i])
+	{
+		atomicAdd(&d_counter,1);
+	}
+  
+}
+
+template<typename T>
+bool issymmetric(T* h_arr, int size1, int dim_x=16,int dim_y=16)
+{ 
+    T* d_arr;
+    size_t size = size1*size1*sizeof(T);
+
+    CHECK(cudaMalloc((T**)&d_arr,size));
+ 
+    CHECK(cudaMemcpy(d_arr,h_arr,size,cudaMemcpyHostToDevice));
+ 
+ 	int* h_ctr;
+ 	h_ctr = (int*) malloc(sizeof(int));
+ 	*h_ctr = 0;
+
+ 	int* d_ctr;
+ 	CHECK(cudaMalloc((int**)&d_ctr,sizeof(int)));
+
+	CHECK(cudaMemcpy(d_ctr,h_ctr,sizeof(int),cudaMemcpyHostToDevice));
+
+    dim3 block(dim_x,dim_y);
+	dim3 grid((col + block.x - 1)/block.x, (row + block.y -1)/block.y);
+
+    _isSymmetric<<<grid,block>>>(d_arr,size1,d_ctr);
+    
+ 
+    CHECK(cudaMemcpy(h_ctr,d_ctr,sizeof(int),cudaMemcpyDeviceToHost));
+
+    return (*h_ctr)==0;
+}
+
+
+
+
+void std()
 
 
 
