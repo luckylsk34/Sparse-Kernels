@@ -14,6 +14,179 @@
 #else
 __device__ void atomicAdd(double* a, double b) { *a = (*a) + b; }
 #endif
+
+__device__ int count1 = 0;
+__device__ int count2 = 0;
+__device__ int count3 = 0;
+
+
+template<typename T>
+__global__ void _non_zero_counter1(T* d_arr,int row,int col){
+
+	int i= threadIdx.x + blockIdx.x * blockDim.x;
+	int j = threadIdx.y + blockIdx.y * blockDim.y;
+
+	int idx = i *col +j;
+
+	if(i==j && d_arr[idx]==1){
+		atomicAdd(&count1,1);
+	}
+  
+}
+
+template<typename T>
+__global__ void _non_zero_counter2(T* d_arr,int row,int col){
+
+	int i= threadIdx.x + blockIdx.x * blockDim.x;
+	int j = threadIdx.y + blockIdx.y * blockDim.y;
+
+	int idx = i *col +j;
+
+	if(i==j && d_arr[idx]!=0){
+		atomicAdd(&count2,1);
+	}
+  
+}
+
+template<typename T>
+__global__ void _non_zero_counter3(T* d_arr,int row,int col){
+
+	int i= threadIdx.x + blockIdx.x * blockDim.x;
+	int j = threadIdx.y + blockIdx.y * blockDim.y;
+
+	int idx = i *col +j;
+
+	if( d_arr[idx]==0){
+		atomicAdd(&count3,1);
+	}
+  
+}
+template<typename T>
+bool iseye(T* h_arr,int row,int col,int dim_x=16,int dim_y=16){
+    //creating space for device array
+	T* d_arr;
+	size_t size = row*col*sizeof(T);
+	cudaMalloc((T**)&d_arr,size);
+
+	//copying the values to device array
+cudaMemcpy(d_arr,h_arr,size,cudaMemcpyHostToDevice);
+
+	size_t int_size = sizeof(int);
+
+	//initializing counter variable
+	
+	dim3 block(dim_x,dim_y);
+	dim3 grid((col + block.x - 1)/block.x, (row + block.y -1)/block.y);
+
+
+	//calling the parallel funtion
+	_non_zero_counter1<<<grid,block>>>(d_arr,row,col);
+
+	//ensuring all the threads have completed there job
+	//__syncthreads();
+
+	//copying the value to host counter
+//cudaMemcpy(h_counter,d_counter,int_size,cudaMemcpyDeviceToHost);
+	bool result;
+  int b;
+   cudaMemcpyFromSymbol(&b, count1, sizeof(int));
+  //cout<<"The value of B=  "<<b<<endl;
+	if(b==min(row,col))
+	result=true;
+	else
+	result=false;
+
+	//calculating the density
+	return result;
+
+	
+
+}
+template<typename T>
+bool isdiagonal(T* h_arr,int row,int col,int dim_x=16,int dim_y=16){
+    //creating space for device array
+	T* d_arr;
+	size_t size = row*col*sizeof(T);
+	cudaMalloc((T**)&d_arr,size);
+
+	//copying the values to device array
+cudaMemcpy(d_arr,h_arr,size,cudaMemcpyHostToDevice);
+
+	size_t int_size = sizeof(int);
+
+	//initializing counter variable
+	
+	dim3 block(dim_x,dim_y);
+	dim3 grid((col + block.x - 1)/block.x, (row + block.y -1)/block.y);
+
+
+	//calling the parallel funtion
+	_non_zero_counter2<<<grid,block>>>(d_arr,row,col);
+
+	//ensuring all the threads have completed there job
+	//__syncthreads();
+
+	//copying the value to host counter
+//cudaMemcpy(h_counter,d_counter,int_size,cudaMemcpyDeviceToHost);
+	bool result;
+  int b;
+   cudaMemcpyFromSymbol(&b, count2, sizeof(int));
+  //cout<<"The value of B=  "<<b<<endl;
+	if(b==min(row,col))
+	result=true;
+	else
+	result=false;
+
+	//calculating the density
+	return result;
+}
+template<typename T>
+bool iszero(T* h_arr,int row,int col,int dim_x=16,int dim_y=16){
+    //creating space for device array
+	T* d_arr;
+	size_t size = row*col*sizeof(T);
+	cudaMalloc((T**)&d_arr,size);
+
+	//copying the values to device array
+cudaMemcpy(d_arr,h_arr,size,cudaMemcpyHostToDevice);
+
+	size_t int_size = sizeof(int);
+
+	//initializing counter variable
+	
+	dim3 block(dim_x,dim_y);
+	dim3 grid((col + block.x - 1)/block.x, (row + block.y -1)/block.y);
+
+
+	//calling the parallel funtion
+	_non_zero_counter3<<<grid,block>>>(d_arr,row,col);
+
+	//ensuring all the threads have completed there job
+	//__syncthreads();
+
+	//copying the value to host counter
+//cudaMemcpy(h_counter,d_counter,int_size,cudaMemcpyDeviceToHost);
+	bool result;
+  int b;
+   cudaMemcpyFromSymbol(&b, count3, sizeof(int));
+  cout<<"The value of B=  "<<b<<endl;
+	if(b==(row*col))
+	result=true;
+	else
+	result=false;
+
+	//calculating the density
+	return result;
+
+	
+
+}
+
+
+	
+
+	
+	
 template<typename T>
 __global__ void _non_zero_counter(T* d_arr,uint row,uint col,uint *counter){
 
@@ -270,18 +443,66 @@ void mean_vector(T* h_arr,uint row,uint col,double* h_result ,enum orientation _
 			col_mean(h_arr,row,col,h_result,dim_x,dim_y);
 		}
 }
-/*
-void std()
 
-void issymmetric()
 
-void isdiagonal()
 
-void iseye()
+
 
 template<typename T>
-void iszero()
+__global__ void _isSymmetric(T* arr,int size, int* d_counter)
+{
+
+	int i= threadIdx.x + blockIdx.x * blockDim.x;
+	int j = threadIdx.y + blockIdx.y * blockDim.y;
+
+	if(arr[i*size + j] != arr[j*size + i])
+	{
+		atomicAdd(d_counter,1);
+	}
+  
+}
+
+template<typename T>
+bool issymmetric(T* h_arr, int size1, int dim_x=16,int dim_y=16)
+{ 
+	int row=size1, col=size1;
+
+    T* d_arr;
+    size_t size = size1*size1*sizeof(T);
+
+    CHECK(cudaMalloc((T**)&d_arr,size));
+ 
+    CHECK(cudaMemcpy(d_arr,h_arr,size,cudaMemcpyHostToDevice));
+ 
+ 	int* h_ctr;
+ 	h_ctr = (int*) malloc(sizeof(int));
+ 	*h_ctr = 0;
+
+ 	int* d_ctr;
+ 	CHECK(cudaMalloc((int**)&d_ctr,sizeof(int)));
+
+	CHECK(cudaMemcpy(d_ctr,h_ctr,sizeof(int),cudaMemcpyHostToDevice));
+
+    dim3 block(dim_x,dim_y);
+	dim3 grid((col + block.x - 1)/block.x, (row + block.y -1)/block.y);
+
+    _isSymmetric<<<grid,block>>>(d_arr,size1,d_ctr);
+    
+ 
+    CHECK(cudaMemcpy(h_ctr,d_ctr,sizeof(int),cudaMemcpyDeviceToHost));
+
+    return (*h_ctr)==0;
+}
+
+
+
+
+
+
+
+
+
+
+
 
 // AtomicMin(),AtomicXOR()
-
-*/
