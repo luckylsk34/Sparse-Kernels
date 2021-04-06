@@ -1,5 +1,8 @@
 #pragma once
 #include<stdlib.h>
+#include<curand.h>
+#include<curand_kernel.h>
+
 #define CHECK(call){\
 	const cudaError_t error = call;\
 	if(error != cudaSuccess){\
@@ -11,21 +14,38 @@
 
 
 template<typename T>
-__global__ void _matrix(T* d_arr,uint row,uint col){
+__global__ void _matrix(T* d_arr,uint row,uint col,curandState_t* states,float sparsity,uint max_value,uint min_value){
     uint _row = threadIdx.x + blockIdx.x * blockDim.x;
 	uint _col = threadIdx.y + blockIdx.y * blockDim.y;
 
 	uint idx = _row * col + _col;
 	//__TODO__ rand doesn't work on gpu
-	int val = rand() % 255;
-	val = val * (rand() % 2);
-	d_arr[idx] = val;   
+	// int val = 25 % 255;
+	// val = val * (9 % 2);
+	// d_arr[idx] = val;   
+
+	int prob = curand_uniform(states);
+	int val=0;
+	if(prob>=sparsity){
+		val = min_value + (int)(max_value-min_value)*curand_uniform(states);
+	}
+	d_arr[idx] = val;
+}
+
+__global__ void rand_init(unsigned int seed, curandState_t* states) {
+  curand_init(seed, blockIdx.x, 5, states);
 }
 
 
-
 template<typename T>
-void matrix(T* h_arr,uint row, uint col,uint dim_x = 32, uint dim_y = 32){
+void matrix(T* h_arr,uint row, uint col,float sparsity=0.7,uint max_value=10000,uint min_value=0,uint dim_x = 32, uint dim_y = 32){
+
+	//initialization of randstate
+	curandState_t* states;
+    CHECK(cudaMalloc((curandState_t**) &states, sizeof(curandState_t)));
+    rand_init<<<1, 1>>>(time(0), states);
+    cudaDeviceSynchronize();
+
 	// needs a (uninitialized) pointer to host and rows and columns in the required matrix
 
     size_t size = row*col*sizeof(T);
@@ -41,7 +61,7 @@ void matrix(T* h_arr,uint row, uint col,uint dim_x = 32, uint dim_y = 32){
 
     // printf("%d %d",grid.x,grid.y);
 
-    _matrix<<<grid,block>>>(d_arr,row,col);
+    _matrix<<<grid,block>>>(d_arr,row,col,states,sparsity,max_value,min_value);
 
     CHECK(cudaMemcpy(h_arr,d_arr,size,cudaMemcpyDeviceToHost));
 
@@ -72,4 +92,4 @@ void tridiagonal(T* arr,int size);
 
 void test(int t);
 
-#include"properties.h"
+//#include"properties.h"

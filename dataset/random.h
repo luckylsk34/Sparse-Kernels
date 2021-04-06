@@ -1,29 +1,61 @@
-#include <unistd.h>
 #include <stdio.h>
-
-/* we need these includes for CUDA's random number stuff */
 #include <curand.h>
 #include <curand_kernel.h>
+#include <math.h>
+#include <assert.h>
+#define MIN 2
+#define MAX 7
+#define ITER 10000000
 
-#define N 25
+__global__ void setup_kernel(curandState *state){
 
-#define MAX 100
-
-/* this GPU kernel function is used to initialize the random states */
-__global__ void init(unsigned int seed, curandState_t* states) {
-
-  /* we have to initialize the state */
-  curand_init(seed, /* the seed can be the same for each core, here we pass the time in from the CPU */
-              blockIdx.x, /* the sequence number should be different for each core (unless you want all
-                             cores to get the same sequence of numbers for some reason - use thread id! */
-              0, /* the offset is how much extra we advance in the sequence for each call, can be 0 */
-              &states[blockIdx.x]);
+  int idx = threadIdx.x+blockDim.x*blockIdx.x;
+  curand_init(1234, idx, 0, &state[idx]);
 }
 
-/* this GPU kernel takes an array of states, and an array of ints, and puts a random int into each */
-__global__ void randoms(curandState_t* states, unsigned int* numbers) {
-  /* curand works like rand - except that it takes a state as a parameter */
-  numbers[blockIdx.x] = curand(&states[blockIdx.x]) % 100;
+__global__ void generate_kernel(curandState *my_curandstate, const unsigned int n, const unsigned *max_rand_int, const unsigned *min_rand_int,  unsigned int *result){
+
+  int idx = threadIdx.x + blockDim.x*blockIdx.x;
+
+  int count = 0;
+  while (count < n){
+    float randf = curand_uniform(my_curandstate+idx);
+    randf *= (max_rand_int[idx] - min_rand_int[idx]+0.999999);
+    randf += min_rand_int[idx];
+    int myrand = (int)truncf(randf);
+
+    assert(myrand <= max_rand_int[idx]);
+    assert(myrand >= min_rand_int[idx]);
+    result[myrand-min_rand_int[idx]]++;
+    count++;
+  }
 }
 
+int main(){
 
+  curandState *d_state;
+  cudaMalloc(&d_state, sizeof(curandState));
+  unsigned *d_result, *h_result;
+  unsigned *d_max_rand_int, *h_max_rand_int, *d_min_rand_int, *h_min_rand_int;
+  cudaMalloc(&d_result, (MAX-MIN+1) * sizeof(unsigned));
+  h_result = (unsigned *)malloc(5*sizeof(unsigned));
+  cudaMalloc(&d_max_rand_int, sizeof(unsigned));
+  h_max_rand_int = (unsigned *)malloc(sizeof(unsigned));
+
+  cudaMalloc(&d_min_rand_int, sizeof(unsigned));
+  h_min_rand_int = (unsigned *)malloc(sizeof(unsigned));
+  cudaMemset(d_result, 0, (5)*sizeof(unsigned));
+  setup_kernel<<<1,1>>>(d_state);
+
+  *h_max_rand_int = MAX;
+  *h_min_rand_int = MIN;
+  cudaMemcpy(d_max_rand_int, h_max_rand_int, sizeof(unsigned), cudaMemcpyHostToDevice);
+  cudaMemcpy(d_min_rand_int, h_min_rand_int, sizeof(unsigned), cudaMemcpyHostToDevice);
+  generate_kernel<<<1,1>>>(d_state, ITER, d_max_rand_int, d_min_rand_int, d_result);
+  cudaMemcpy(h_result, d_result, (MAX-MIN+1) * sizeof(unsigned), cudaMemcpyDeviceToHost);
+  printf("Bin:    Count: \n");
+  for (int i = MIN; i <= MAX; i++)
+    printf("%d    %d\n", i, h_result[i-MIN]);
+
+  return 0;
+}
