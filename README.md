@@ -14,4 +14,4 @@ In the ```kernels``` folder, run the following commands to build and run the ben
 
 ```make -j12```
 
-Use can this [Colab link](https://colab.research.google.com/drive/1ws-o_njQ9Esi8p7EM1aFw8-dcMIFQXaw?usp=sharing) to Build and run the project.
+You can use this [Colab link](https://colab.research.google.com/drive/1ws-o_njQ9Esi8p7EM1aFw8-dcMIFQXaw?usp=sharing) to Build and run the project.
